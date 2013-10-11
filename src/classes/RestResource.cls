@@ -39,6 +39,25 @@ global class RestResource {
 		result.deleteRecords();
 	}
 	
+	@HttpPut
+	global static void doPut(){
+		RestRequest rr = RestContext.request;
+		Blob rBody = rr.requestBody;
+		String body = rBody.toString();
+		//Process string into map or list
+		Map<String,Object> params = (Map<String,Object>)JSON.deserializeUntyped(body);
+		RestResponse rs = RestContext.response;
+		Rest_Schema__c schema = getRestResource(rr.requestURI);
+		String resourceId = getRestId(rr.requestURI);
+		List<IsolatedSObjectNode> nodes = NodeTreeConstructor.constructNodeTree(schema.Schema_Definition__c);
+		SingleNodeResult existingResults = NodeResult.buildResults(nodes[0],resourceId);
+		SingleNodeResult updatedResults = new SingleNodeResult(nodes[0],params);
+		existingResults.mergeResults(updatedResults);
+		existingResults.save();
+		rs.responseBody = Blob.valueOf(JSON.serialize(existingResults.buildMap()));
+
+	}
+	
 	private static Rest_Schema__c getRestResource(String requestUri) {
 		List<String> uriParts = requestUri.split('/');
 		String version = uriParts[2];

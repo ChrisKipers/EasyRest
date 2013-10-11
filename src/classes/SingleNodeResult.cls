@@ -71,29 +71,36 @@ public class SingleNodeResult extends NodeResult {
 				if (String.isNotBlank(childNode.key)) {
 					mapToPopulateWith = (Map<String, Object>)mapping.get(childNode.key);
 				}
-				SingleNodeResult newSR = null;
-				if (childNode.nType == 'IsolatedSObjectNode') {
-					newSR = new SingleNodeResult((IsolatedSObjectNode)childNode, mapToPopulateWith);
-				} else {
-					newSR = new SingleNodeResult(obj,(SObjectNode)childNode, mapToPopulateWith);
-				} 
-  
-				addResult(newSr);
+				if (mapToPopulateWith != null) {
+					SingleNodeResult newSR = null;
+					if (childNode.nType == 'IsolatedSObjectNode') {
+						newSR = new SingleNodeResult((IsolatedSObjectNode)childNode, mapToPopulateWith);
+					} else {
+						newSR = new SingleNodeResult(obj,(SObjectNode)childNode, mapToPopulateWith);
+					} 
+	  
+					addResult(newSr);
+				}
 				
 			} else if (childNode.nType == 'ChildSObjectNode') {
 				ChildSObjectNode csn = (ChildSObjectNode)childNode;
 				MultiNodeResult newMnr = null;
 				if (csn.isCollection) { 
 					List<Object> childObjectMappings = (List<Object>)mapping.get(csn.key);
-					newMnr = new MultiNodeResult(csn,childObjectMappings);
+					if (childObjectMappings != null) {
+						newMnr = new MultiNodeResult(csn,childObjectMappings);
+						addResult(newMnr);
+					}
 				} else {
 					Map<String, Object> mapToPopulateWith = mapping;
 					if (String.isNotBlank(csn.key)) {
 						mapToPopulateWith = (Map<String, Object>)mapping.get(csn.key);
 					}
-					newMnr = new MultiNodeResult(csn, new List<Object>{mapToPopulateWith});
+					if (mapToPopulateWith != null) {
+						newMnr = new MultiNodeResult(csn, new List<Object>{mapToPopulateWith});
+						addResult(newMnr);
+					}
 				}
-				addResult(newMnr);
 			}
 		}
 	}
@@ -105,6 +112,36 @@ public class SingleNodeResult extends NodeResult {
 		if (obj.id != null) {
 			allRecords.add(obj);
 		}
+	}
+	
+	public void mergeResults(SingleNodeResult otherResult) {
+		otherResult.fieldsIncludedInRequest.remove('id');
+		for (String apiName : otherResult.fieldsIncludedInRequest) {
+			obj.put(apiName, otherResult.obj.get(apiName));
+		}
+		
+		for (String nodeHash : otherResult.children.keyset()) {
+			NodeResult nr = children.get(nodeHash);
+			if (nr == null) {
+				children.put(nodeHash, nr);
+			} else {
+				NodeResult otherNr = otherResult.children.get(nodeHash);
+				if (otherNr != null && otherNr instanceof SingleNodeResult) {
+					SingleNodeResult snr = (SingleNodeResult)nr;
+					SingleNodeResult otherSnr = (SingleNodeResult)otherNr;
+					snr.mergeResults(otherSnr);
+				} else if (otherNr != null && otherNr instanceof MultiNodeResult) {
+					MultiNodeResult mnr = (MultiNodeResult)nr;
+					MultiNodeResult otherMnr = (MultiNodeResult)otherNr;
+					mnr.mergeResults(otherMnr);
+				}
+			}
+		}
+	}
+	
+	public class TestingException extends Exception{
+		
+		
 	}
 	
 }

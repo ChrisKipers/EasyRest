@@ -88,7 +88,6 @@ public class MultiNodeResult extends NodeResult {
 		for (Object obj: objects) {
 			SObject newObj = DynamicHelper.createObject(nodep.SObjectType);
 			Set<String> fieldsIncludedInRequest = new Set<String>();
-			fieldsIncludedForObj.put(newObj,fieldsIncludedInRequest);
 			Map<String,Object> mapping = (Map<String,Object>)obj;
 			for (Node childNode : node.nodes) {
 				if (childNode.nType == 'Node') {
@@ -108,32 +107,43 @@ public class MultiNodeResult extends NodeResult {
 					if (String.isNotBlank(childNode.key)) {
 						mapToPopulateWith = (Map<String, Object>)mapping.get(childNode.key);
 					}
-					
-					SingleNodeResult newSR = null;
-					if (childNode.nType == 'IsolatedSObjectNode') {
-						newSR = new SingleNodeResult((IsolatedSObjectNode)childNode, mapToPopulateWith);
-					} else {
-						newSR = new SingleNodeResult(newObj,(SObjectNode)childNode, mapToPopulateWith);
+					if (mapToPopulateWith != null) {
+						SingleNodeResult newSR = null;
+						if (childNode.nType == 'IsolatedSObjectNode') {
+							newSR = new SingleNodeResult((IsolatedSObjectNode)childNode, mapToPopulateWith);
+						} else {
+							newSR = new SingleNodeResult(newObj,(SObjectNode)childNode, mapToPopulateWith);
+						}
+						addResult(newObj,newSR);
 					}
-					addResult(newObj,newSR);
 					
 				} else if (childNode.nType == 'ChildSObjectNode') {
 					ChildSObjectNode csn = (ChildSObjectNode)childNode;
 					MultiNodeResult newMnr = null;
 					if (csn.isCollection) {
 						List<Object> childObjectMappings = (List<Object>)mapping.get(csn.key);
-						newMnr = new MultiNodeResult(csn,childObjectMappings);
+						if (childObjectMappings != null) {
+							newMnr = new MultiNodeResult(csn,childObjectMappings);
+							addResult(newObj,newMnr);
+						}
 					} else {
 						Map<String, Object> mapToPopulateWith = mapping;
 						if (String.isNotBlank(csn.key)) {
 							mapToPopulateWith = (Map<String, Object>)mapping.get(csn.key);
 						}
-						newMnr = new MultiNodeResult(csn, new List<Object>{mapToPopulateWith});
+						if (mapToPopulateWith != null) {
+							newMnr = new MultiNodeResult(csn, new List<Object>{mapToPopulateWith});
+							addResult(newObj,newMnr);
+						}
+						
 					}
-					addResult(newObj,newMnr);
+					
 				}
 			}
 			objs.add(newObj);
+			//so weird, if this isnt here its like the map forgets teh reference value
+			//I've never seen anything like it.
+			fieldsIncludedForObj.put(newObj,fieldsIncludedInRequest);
 		}
 	}
 	
@@ -148,5 +158,84 @@ public class MultiNodeResult extends NodeResult {
 				allRecords.add(obj);
 			}
 		}
+	}
+	
+	public void mergeResults(MultiNodeResult otherResult) {
+		ChildSObjectNode childNode = (ChildSObjectNode)node;
+
+		Map<SObject,Sobject> oldToNewObjs = new Map<SObject,Sobject>();
+		List<SObject> newObjs = new List<SObject>();
+		if (childNode.isCollection && otherResult.objs.size() > 0) {
+			for (SObject newSObject : otherResult.objs) {
+				boolean found = false;
+				for (SObject obj : objs) {
+					Object value1 = obj.get(childNode.matchingField);
+					Object value2 = newSObject.get(childNode.matchingField);
+					if (value1 != null && value2 != null) {
+						String sValue1 = String.valueOf(value1);
+						String sValue2 = String.valueOf(value2);
+						if (sValue1 == sValue2) {
+							found = true;
+							oldToNewObjs.put(obj,newSObject);
+							break;
+						}
+					}
+				}
+				if (!found) {
+					newObjs.add(newSObject);
+				}
+			}
+		} else if (!childNode.isCollection && objs.size() == 1 && otherResult.objs.size() == 1) {
+			oldToNewObjs.put(objs[0],otherResult.objs[0]);
+		}
+		
+		
+		for (SObject oldObj : oldToNewObjs.keyset()) {
+			SObject newObj = oldToNewObjs.get(oldObj);
+			//throw new SingleNodeResult.TestingException(Json.serialize(otherResult.fieldsIncludedForObj) + JSON.serialize(newObj));
+			Set<String> fieldsToCopy = otherResult.fieldsIncludedForObj.get(newObj);
+			fieldsToCopy.remove('id');
+			for (String apiName : fieldsToCopy) {
+				oldObj.put(apiName, newObj.get(apiName));
+			}
+			Map<String, NodeResult> otherChildren = otherResult.childrenMap.get(oldObj);
+			Map<String, NodeResult> objChildMap  = childrenMap.get(oldObj);
+			if (objChildMap != null && otherChildren != null) {
+				for (String nodeHash : otherChildren.keyset()) {
+					NodeResult nr = objChildMap.get(nodeHash);
+					if (nr == null) {
+						objChildMap.put(nodeHash, otherChildren.get(nodeHash));
+					} else {
+						NodeResult otherNr = otherChildren.get(nodeHash);
+						if (otherNr != null && otherNr instanceof MultiNodeResult) {
+							MultiNodeResult mnr = (MultiNodeResult)nr;
+							MultiNodeResult otherMnr = (MultiNodeResult)otherNr;
+							mnr.mergeResults(otherMnr);
+						} else if (otherNr != null && otherNr instanceof SingleNodeResult) {
+							SingleNodeResult snr = (SingleNodeResult)nr;
+							SingleNodeResult otherSnr = (SingleNodeResult)otherNr;
+							snr.mergeResults(otherSnr);
+						}
+					}
+				}
+			} else if (objChildMap == null && otherChildren != null) {
+				objChildMap = new Map<String, NodeResult>();
+				childrenMap.put(oldObj,objChildMap);
+				for (String nodeHash : otherChildren.keyset()) {
+					objChildMap.put(nodeHash, otherChildren.get(nodeHash));
+				}
+			}
+		}
+		
+		for (SObject newObj : newObjs) {
+			addObject(newObj);
+			Map<String, NodeResult> newChildren = childrenMap.get(newObj);
+			if (newChildren != null) {
+				for (String nodeHash : newChildren.keyset()) {
+					addResult(newObj,newChildren.get(nodeHash));
+				}
+			}
+		}
+		
 	}
 }
