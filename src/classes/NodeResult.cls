@@ -19,10 +19,10 @@ public abstract class NodeResult {
 	public static MultiNodeResult buildResults(IsolatedSObjectNode nodeTree, List<String> identifiers) {
 		return BuildNodeResult.BuildNodeResult(nodeTree, identifiers);
 	}
-	
+
 	public void save() {
 		SavePackage sp = new SavePackage(new List<NodeResult>{this},node);
-		sp.save();
+		sp.save(); 
 	}
 	
 	public abstract void deleteRecords(List<SObject> allRecords);

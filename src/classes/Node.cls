@@ -3,7 +3,7 @@ public virtual class Node {
 	public String key		{get; set;}
 	public String APIName	{get; set;}
 	
-	private String hashKey;
+	protected String hashKey;
 	
 	public Node() {
 		nType = getType();
@@ -13,10 +13,18 @@ public virtual class Node {
 		return 'Node';
 	}
 	
-	public String getHashKey() {
+	public virtual String getHashKey() {
 		if (hashKey == null) {
-			hashKey = Json.serialize(this);
+			hashKey = 'nType:' + nullToEmpty(nType) + ':key:' + nullToEmpty(key) + ':APIName:' + nullToEmpty(APIName);
 		}
 		return hashKey;
+	}
+	
+	protected String nullToEmpty(String value) {
+		if (value == null) {
+			return '';
+		} else {
+			return value;
+		}
 	}
 }

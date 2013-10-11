@@ -1,19 +1,20 @@
 public class SingleNodeResult extends NodeResult {
 	public SObject obj	{get; set;}
-	public List<NodeResult> childrenResults	{get; set;}
+	//public List<NodeResult> childrenResults	{get; set;}
+	public Map<String, NodeResult> children {get; set;}
 	public Set<String> fieldsIncludedInRequest {get; set;}
 	
 	/******************** Methods used to construct node from SObject ***************/
 	public SingleNodeResult(SObjectNode nodep) {
 		node = nodep;
-		childrenResults = new List<NodeResult>();
+		children = new Map<String, NodeResult>();
 		fieldsIncludedInRequest = new Set<String>();
 	}
 	
 	public void addResult(NodeResult newResult) {
-		childrenResults.add(newResult);
+		children.put(newResult.node.getHashKey(), newResult);
 	}
-	
+	 
 	protected override Map<String,Object> populateMap(Map<String,Object> existingMap) {
 		Map<String,Object> mapToPopulate = existingMap;
 		if (String.isNotBlank(node.key)) {
@@ -24,7 +25,7 @@ public class SingleNodeResult extends NodeResult {
 		populateMapWithChildrenFieldData(mapToPopulate,obj);
 		
 		//Populate all the children
-		for (NodeResult childResult : childrenResults) {
+		for (NodeResult childResult : children.values()) {
 			childResult.populateMap(mapToPopulate);
 		}
 		
@@ -50,7 +51,7 @@ public class SingleNodeResult extends NodeResult {
 	private void construct(SObjectNode nodep, String sObjectType, Map<String, Object> mapping) {
 		node = nodep;
 		fieldsIncludedInRequest = new Set<String>();
-		childrenResults = new List<NodeResult>();
+		children = new Map<String, NodeResult>();
 		obj = DynamicHelper.createObject(sObjectType);
 		for (Node childNode : node.nodes) {
 			if (childNode.nType == 'Node') {
@@ -75,14 +76,14 @@ public class SingleNodeResult extends NodeResult {
 					newSR = new SingleNodeResult((IsolatedSObjectNode)childNode, mapToPopulateWith);
 				} else {
 					newSR = new SingleNodeResult(obj,(SObjectNode)childNode, mapToPopulateWith);
-				}
-
-				childrenResults.add(newSr);
+				} 
+  
+				addResult(newSr);
 				
 			} else if (childNode.nType == 'ChildSObjectNode') {
 				ChildSObjectNode csn = (ChildSObjectNode)childNode;
 				MultiNodeResult newMnr = null;
-				if (csn.isCollection) {
+				if (csn.isCollection) { 
 					List<Object> childObjectMappings = (List<Object>)mapping.get(csn.key);
 					newMnr = new MultiNodeResult(csn,childObjectMappings);
 				} else {
@@ -92,13 +93,13 @@ public class SingleNodeResult extends NodeResult {
 					}
 					newMnr = new MultiNodeResult(csn, new List<Object>{mapToPopulateWith});
 				}
-				childrenResults.add(newMnr);
+				addResult(newMnr);
 			}
 		}
 	}
 	
 	public override void deleteRecords(List<SObject> allRecords) {
-		for (NodeResult result : childrenResults) {
+		for (NodeResult result : children.values()) {
 			result.deleteRecords(allRecords);
 		}
 		if (obj.id != null) {

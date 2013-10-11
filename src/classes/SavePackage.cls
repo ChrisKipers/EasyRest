@@ -6,216 +6,128 @@ public class SavePackage {
 		results = resultsP;
 		node = nodeP;
 	}
-		
-	public List<NodeResult> getAllChildren() {
-		List<NodeResult> allChildren = new List<NodeResult>();
-			
-		for (NodeResult parentResult : results) {
-			if (parentResult instanceof SingleNodeResult) {
-				allChildren.addAll(((SingleNodeResult)parentResult).childrenResults);
-			} else if (parentResult instanceof MultiNodeResult) {
-				MultiNodeResult multiParent = (MultiNodeResult)parentResult;
-				for (SObject key: multiParent.childrenMapping.keyset()) {
-					allChildren.addAll(multiParent.childrenMapping.get(key));
-				}
-			}
-		}
-		return allChildren;
-	}
-		
-	public List<SObject> getAllMainSObjects() {
-			
+	
+	public void Save() {
+		Set<SObjectNode> lookupNodes = new Set<SObjectNode>();
+		Set<ChildSObjectNode> childNodes = new Set<ChildSObjectNode>();
+		Map<String, List<NodeResult>> allResultsPerNode = new Map<String, List<NodeResult>>();
 		List<SObject> allMainSObjects = new List<SObject>();
-		for (NodeResult result : results) {
-			if (result instanceof SingleNodeResult) {
-				allMainSObjects.add(((SingleNodeResult)result).obj);
-			} else if (result instanceof MultiNodeResult) {
-				MultiNodeResult multiParent = (MultiNodeResult)result;
-				allMainSObjects.addAll(multiParent.objs);
-			}
-		}
-			
-		return allMainSObjects;
-	}
 		
-	public List<SObjectNode> getAllLookupNodes() {
-		List<SObjectNode> lookupNodes = new List<SObjectNode>();
 		for (Node childNode : node.nodes) {
 			if (childNode.nType == 'SObjectNode') {
 				lookupNodes.add((SObjectNode)childNode);
-			} 
-		}
-		return lookupNodes;
-	}
-		
-	public List<ChildSObjectNode> getAllChildNodes() {
-		List<ChildSObjectNode> childNodes = new List<ChildSObjectNode>();
-		for (Node childNode : node.nodes) {
-			if (childNode.nType == 'ChildSObjectNode') {
+			} else if (childNode.nType == 'ChildSObjectNode') {
 				childNodes.add((ChildSObjectNode)childNode);
 			}
 		}
-		return childNodes;
-	}
-
-	public void Save() {
 		
-		List<SObjectNode> allLookupNodes = getAllLookupNodes();
-		List<ChildSObjectNode> allChildrenNodes = getAllChildNodes();
-		List<SavePackage> allLookupPackages = new List<SavePackage>();
-		List<SavePackage> allChildrenPackages = new List<SavePackage>();
-		Map<SObjectNode,List<NodeResult>> nodeMap = new Map<SObjectNode,List<NodeResult>>();
-		
-		List<NodeResult> allChildren = getAllChildren();
-		
-		//order of 2...
-		for (Integer i = 0; i < allLookupNodes.size() ; i++) {
-			SObjectNode lookupNode = allLookupNodes[i];
-			boolean found = false;
-			for (NodeResult child : allChildren) {
-				if (lookupNode.equals(child.node)) {
-					found = true;
-					List<NodeResult> simalarNodes = nodeMap.get(lookupNode);
-					if (simalarNodes == null) {
-						simalarNodes = new List<NodeResult>();
-						nodeMap.put(lookupNode,simalarNodes);
+		for (NodeResult nr : results) {
+			if (nr instanceof SingleNodeResult) {
+				SingleNodeResult snr = (SingleNodeResult)nr;
+				allMainSObjects.add(snr.obj);
+				for (String hashKey : snr.children.keyset()) {
+					List<NodeResult> resultsForNode = allResultsPerNode.get(hashKey);
+					if (resultsForNode == null) {
+						resultsForNode = new List<NodeResult>();
+						allResultsPerNode.put(hashKey, resultsForNode);
 					}
-					simalarNodes.add(child);
+					resultsForNode.add(snr.children.get(hashKey));
 				}
-			}
-		}
-		
-		for (SObjectNode key : nodeMap.keySet()) {
-			List<NodeResult> results = nodeMap.get(key);
-			if (results != null && results.size() != 0) {
-				allLookupPackages.add( new SavePackage(results,key));
-			}
-		}
-		nodeMap.clear();
-		
-		//order of 2...
-		for (Integer i = 0; i < allChildrenNodes.size() ; i++) {
-			ChildSObjectNode childNode = allChildrenNodes[i];
-			boolean found = false;
-			for (NodeResult child : allChildren) {
-				if (childNode.equals(child.node)) {
-					found = true;
-					List<NodeResult> simalarNodes = nodeMap.get(childNode);
-					if (simalarNodes == null) {
-						simalarNodes = new List<NodeResult>();
-						nodeMap.put(childNode,simalarNodes);
-					}
-					simalarNodes.add(child);
-				}
-			}
-			if (found) {
-				allChildrenNodes.remove(i);
-				i--;
-			}
-		}
-		
-		for (SObjectNode key : nodeMap.keySet()) {
-			List<NodeResult> results = nodeMap.get(key);
-			if (results != null && results.size() != 0) {
-				allChildrenPackages.add( new SavePackage(results,key));
-			}
-		}
-		
-		for (SavePackage lookupPackage: allLookupPackages) {
-			lookupPackage.save();
-		}
-		
-		// associate lookup packages to main sobjects
-		// @todo clean this shit up
-		for (NodeResult result : results) {
-			if (result instanceof MultiNodeResult) {
-				MultiNodeResult mnr = (MultiNodeResult)result;
-				for (Node node : mnr.node.nodes) {
-					if (node.nType == 'SObjectNode') {
-						SObjectNode sObjNode = (SObjectNode)node;
-						for (SObject obj : mnr.objs) {
-							List<NodeResult> objsResults = mnr.childrenMapping.get(obj);
-							if (objsResults != null) {
-								for (NodeResult nodeR : objsResults) {
-									if (sObjNode.equals(nodeR.node)) {
-										SingleNodeResult snr = (SingleNodeResult)nodeR;
-										obj.put(sObjNode.APIName, (ID)snr.obj.get('id'));
-									}
-								}
+			} else if (nr instanceof MultiNodeResult) {
+				MultiNodeResult mnr = (MultiNodeResult)nr;
+				for (SObject obj : mnr.objs) {
+					allMainSObjects.add(obj);
+					Map<String, NodeResult> objsNodeResults = mnr.childrenMap.get(obj);
+					if (objsNodeResults != null) {
+						for (String hashKey : objsNodeResults.keyset()) {
+							List<NodeResult> resultsForNode = allResultsPerNode.get(hashKey);
+							if (resultsForNode == null) {
+								resultsForNode = new List<NodeResult>();
+								allResultsPerNode.put(hashKey, resultsForNode);
 							}
+							resultsForNode.add(objsNodeResults.get(hashKey));
 						}
 					}
 				}
-			} else if (result instanceof SingleNodeResult) {
-				SingleNodeResult parentSnr = (SingleNodeResult)result;
-				for (Node node : parentSnr.node.nodes) {
-					if (node.nType == 'SObjectNode') {
-						SObjectNode sObjNode = (SObjectNode)node;
-						for (NodeResult nodeR : parentSnr.childrenResults) {
-							if (sObjNode.equals(nodeR.node)) {
-								SingleNodeResult snr = (SingleNodeResult)nodeR;
-								parentSnr.obj.put(sObjNode.APIName, (ID)snr.obj.get('id'));
+			}
+		}
+		
+		List<NodeResult> allLookups = new List<NodeResult>();
+		List<NodeResult> allChildren = new List<NodeResult>();
+		
+		for (SObjectNode lNode : lookupNodes) {
+			List<NodeResult> lookupsForNode = allResultsPerNode.get(lNode.getHashKey());
+			if (lookupsForNode != null) {
+				SavePackage sp = new SavePackage(lookupsForNode, lNode);
+				sp.save();
+			}
+		}
+		
+		for (SObjectNode lNode : lookupNodes) {
+			for (NodeResult nr : results) {
+				if (nr instanceof SingleNodeResult) {
+					SingleNodeResult snr = (SingleNodeResult)nr;
+					NodeResult lookup = snr.children.get(lNode.getHashKey());
+					if (lookup != null && lookup instanceof SingleNodeResult) {
+						SingleNodeResult sLookup = (SingleNodeResult)lookup;
+						snr.obj.put(lNode.APIName, sLookup.obj.id);
+					}
+				} else if (nr instanceof MultiNodeResult) {
+					MultiNodeResult mnr = (MultiNodeResult)nr;
+					for (SObject obj : mnr.objs) {
+						Map<String, NodeResult> objChildren = mnr.childrenMap.get(obj);
+						if (objChildren != null) {
+							NodeResult lookup = objChildren.get(lNode.getHashKey());
+							if (lookup != null && lookup instanceof SingleNodeResult) {
+								SingleNodeResult sLookup = (SingleNodeResult)lookup;
+								obj.put(lNode.APIName, sLookup.obj.id);
 							}
 						}
 					}
 				}
 			}
 		}
-		List<SObject> allPackageSObjects = getAllMainSObjects();
-		List<SObject> insertList = new List<SObject>();
-		List<SObject> updatetList = new List<SObject>();
-		for (SObject sObj : allPackageSObjects) {
-			if (sObj.id == null) {
-				insertList.add(sObj);
+		
+		
+		List<SObject> insertObj = new List<SObject>();
+		List<SObject> updateObj = new List<SObject>();
+		for (SObject obj : allMainSObjects) {
+			if (obj.id == null) {
+				insertObj.add(obj);
 			} else {
-				updatetList.add(sObj);
+				updateObj.add(obj);
 			}
 		}
-		if (insertList.size() > 0) {
-			insert insertList;
+		
+		if (insertObj.size() > 0) {
+			insert insertObj;
 		}
 		
-		if (updatetList.size() > 0) {
-			update updatetList;
+		if (updateObj.size() > 0) {
+			update updateObj;
 		}
 		
-		//associate the children with the main objects
-		// @todo clean this shit up
-		for (NodeResult result : results) {
-			if (result instanceof MultiNodeResult) {
-				MultiNodeResult mnr = (MultiNodeResult)result;
-				for (Node node : mnr.node.nodes) {
-					if (node.nType == 'ChildSObjectNode') {
-						ChildSObjectNode sObjNode = (ChildSObjectNode)node;
-						for (SObject obj : mnr.objs) {
-							List<NodeResult> objsResults = mnr.childrenMapping.get(obj);
-							if (objsResults != null) {
-								for (NodeResult nodeR : objsResults) {
-									if (sObjNode.equals(nodeR.node)) {
-										MultiNodeResult childResults = (MultiNodeResult)nodeR;
-										for (SObject childObj : childResults.objs) {
-											childObj.put(sObjNode.relationKey, (Id)obj.get('id'));
-										}
-									}
-								}
-							}
+		for (ChildSObjectNode cNode : childNodes) {
+			for (NodeResult nr : results) {
+				if (nr instanceof SingleNodeResult) {
+					SingleNodeResult snr = (SingleNodeResult)nr;
+					NodeResult child = snr.children.get(cNode.getHashKey());
+					if (child != null && child instanceof MultiNodeResult) {
+						MultiNodeResult mChild = (MultiNodeResult)child;
+						for (SObject cObj : mChild.objs) {
+							cObj.put(cNode.relationKey, snr.obj.id);
 						}
 					}
-				}
-			} else if (result instanceof SingleNodeResult) {
-				SingleNodeResult parentSnr = (SingleNodeResult)result;
-				if (parentSnr.childrenResults != null) {
-					for (Node node : parentSnr.node.nodes) {
-						if (node.nType == 'ChildSObjectNode') {
-							ChildSObjectNode sObjNode = (ChildSObjectNode)node;
-							for (NodeResult nodeR : parentSnr.childrenResults) {
-								if (sObjNode.equals(nodeR.node)) {
-									MultiNodeResult childResults = (MultiNodeResult)nodeR;
-									if (childResults.objs != null) {
-										for (SObject childObj : childResults.objs) {
-											childObj.put(sObjNode.relationKey, (Id)parentSnr.obj.get('id'));
-										}
-									}
+				} else if (nr instanceof MultiNodeResult) {
+					MultiNodeResult mnr = (MultiNodeResult)nr;
+					for (SObject obj : mnr.objs) {
+						Map<String, NodeResult> objChildren = mnr.childrenMap.get(obj);
+						if (objChildren != null) {
+							NodeResult child = objChildren.get(cNode.getHashKey());
+							if (child != null && child instanceof MultiNodeResult) {
+								MultiNodeResult mChild = (MultiNodeResult)child;
+								for (SObject cObj : mChild.objs) {
+									cObj.put(cNode.relationKey, obj.id);
 								}
 							}
 						}
@@ -224,8 +136,12 @@ public class SavePackage {
 			}
 		}
 		
-		for (SavePackage childPackage: allChildrenPackages) {
-			childPackage.save();
+		for (ChildSObjectNode cNode : childNodes) {
+			List<NodeResult> childrenForNode = allResultsPerNode.get(cNode.getHashKey());
+			if (childrenForNode != null) {
+				SavePackage sp = new SavePackage(childrenForNode, cNode);
+				sp.save();
+			}
 		}
 	}
 }

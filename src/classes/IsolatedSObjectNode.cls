@@ -20,4 +20,12 @@ public virtual class IsolatedSObjectNode extends SObjectNode{
 			return false;
 		}
 	}
+	
+	public override String getHashKey() {
+		if (hashKey == null) {
+			hashKey = 'nType:' + nullToEmpty(nType) + ':key:' + nullToEmpty(key) + ':APIName:' + nullToEmpty(APIName) +
+			':SObjectType:' + nullToEmpty(SObjectType) + ':relationKey:' + nullToEmpty(relationKey) + ':matchingField:' + nullToEmpty(matchingField);
+		}
+		return hashKey;
+	}
 }

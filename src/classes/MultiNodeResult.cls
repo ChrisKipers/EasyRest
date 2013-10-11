@@ -1,13 +1,14 @@
 public class MultiNodeResult extends NodeResult {
 	public List<SObject> objs	{get; set;}
 	public Map<SObject, Set<String>> fieldsIncludedForObj	{get; set;}
-	public Map<SObject, List<NodeResult>> childrenMapping	{get; set;}
-	
+	 
+	public Map<SObject,Map<String, NodeResult>> childrenMap {get; set;}
+	 
 	/********** Methods for MultiNodeResult for building from SObjects ********/
 	
 	public MultiNodeResult(SObjectNode nodep) {
 		node = nodep;
-		childrenMapping = new Map<SObject, List<NodeResult>>();
+		childrenMap = new Map<SObject,Map<String, NodeResult>>();
 		objs = new List<SObject>();
 		fieldsIncludedForObj = new Map<SObject, Set<String>>();
 	}
@@ -20,13 +21,14 @@ public class MultiNodeResult extends NodeResult {
 	public void addObject(SObject obj) {
 		objs.add(obj);
 	}
+	
 	public void addResult(SObject objP, NodeResult result) {
-		List<NodeResult> results = childrenMapping.get(objP);
-		if (results == null) {
-			results = new List<NodeResult>();
-			childrenMapping.put(objP,results);
+		Map<String, NodeResult> children = childrenMap.get(objP);
+		if (children == null) {
+			children = new Map<String, NodeResult>();
+			childrenMap.put(objP,children);
 		}
-		results.add(result);
+		children.put(result.node.getHashKey(),result);
 	}
 	
 	protected override Map<String,Object> populateMap(Map<String,Object> existingMap) {
@@ -49,9 +51,9 @@ public class MultiNodeResult extends NodeResult {
 		for (SObject obj : objs) {
 			Map<String,Object> objMap = new Map<String,Object>();
 			populateMapWithChildrenFieldData(objMap,obj);
-			List<NodeResult> childrenResults = childrenMapping.get(obj);
+			Map<String, NodeResult> childrenResults = childrenMap.get(obj);
 			if (childrenResults != null) {
-				for (NodeResult childResult : childrenResults) {
+				for (NodeResult childResult : childrenResults.values()) {
 					childResult.populateMap(objMap);
 				}
 			}
@@ -65,9 +67,9 @@ public class MultiNodeResult extends NodeResult {
 		if (objs != null && objs.size() > 0) {
 			SObject firstObj = objs[0];
 			populateMapWithChildrenFieldData(mapping,firstObj);
-			List<NodeResult> childrenResults = childrenMapping.get(firstObj);
+			Map<String, NodeResult> childrenResults = childrenMap.get(firstObj);
 			if (childrenResults != null) {
-				for (NodeResult childResult : childrenResults) {
+				for (NodeResult childResult : childrenResults.values()) {
 					childResult.populateMap(mapping);
 				}
 			}
@@ -80,7 +82,7 @@ public class MultiNodeResult extends NodeResult {
 	public MultiNodeResult(IsolatedSObjectNode nodep, List<Object> objects) {
 		node = nodep;
 		objs = new List<SObject>();
-		childrenMapping = new Map<SObject, List<NodeResult>>();
+		childrenMap = new Map<SObject,Map<String, NodeResult>>();
 		fieldsIncludedForObj = new Map<SObject, Set<String>>();
 		
 		for (Object obj: objects) {
@@ -113,12 +115,7 @@ public class MultiNodeResult extends NodeResult {
 					} else {
 						newSR = new SingleNodeResult(newObj,(SObjectNode)childNode, mapToPopulateWith);
 					}
-					List<NodeResult> parentResults = childrenMapping.get(newObj);
-					if (parentResults == null) {
-						parentResults = new List<NodeResult>();
-						childrenMapping.put(newObj,parentResults);
-					}
-					parentResults.add(newSr);
+					addResult(newObj,newSR);
 					
 				} else if (childNode.nType == 'ChildSObjectNode') {
 					ChildSObjectNode csn = (ChildSObjectNode)childNode;
@@ -133,13 +130,7 @@ public class MultiNodeResult extends NodeResult {
 						}
 						newMnr = new MultiNodeResult(csn, new List<Object>{mapToPopulateWith});
 					}
-					
-					List<NodeResult> parentResults = childrenMapping.get(newObj);
-					if (parentResults == null) {
-						parentResults = new List<NodeResult>();
-						childrenMapping.put(newObj,parentResults);
-					}
-					parentResults.add(newMnr);
+					addResult(newObj,newMnr);
 				}
 			}
 			objs.add(newObj);
@@ -147,8 +138,8 @@ public class MultiNodeResult extends NodeResult {
 	}
 	
 	public override void deleteRecords(List<SObject> allRecords) {
-		for (List<NodeResult> results : childrenMapping.values()) {
-			for (NodeResult result : results) {
+		for (Map<String, NodeResult> results : childrenMap.values()) {
+			for (NodeResult result : results.values()) {
 				result.deleteRecords(allRecords);
 			}
 		}
