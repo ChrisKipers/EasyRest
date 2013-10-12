@@ -5,7 +5,7 @@ public abstract class NodeResult {
 	
 	protected void populateMapWithChildrenFieldData(Map<String,Object> mapping, Sobject obj) {
 		for (Node fieldNode : node.nodes) {
-			if (fieldNode.nType == 'Node') {
+			if (fieldNode.nType == 'FieldNode') {
 				mapping.put(fieldNode.key, String.valueOf(obj.get(fieldNode.APIName)));
 			}
 		}

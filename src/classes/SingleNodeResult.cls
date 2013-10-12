@@ -54,8 +54,8 @@ public class SingleNodeResult extends NodeResult {
 		children = new Map<String, NodeResult>();
 		obj = DynamicHelper.createObject(sObjectType);
 		for (Node childNode : node.nodes) {
-			if (childNode.nType == 'Node') {
-				if (mapping.keyset().contains(childNode.key)) {
+			if (childNode.nType == 'FieldNode' && String.isNotBlank(childNode.APIName)) {
+				if (String.isNotBlank(childNode.key) && mapping.keyset().contains(childNode.key)) {
 					fieldsIncludedInRequest.add(childNode.APIName);
 					obj.put(
 						childNode.APIName,

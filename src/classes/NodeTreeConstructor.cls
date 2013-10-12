@@ -24,9 +24,10 @@ public class NodeTreeConstructor {
 	}
 	
 	private static Node buildFieldNode(Map<String,Object> nodeMap) {
-		Node fieldNode = new Node();
+		FieldNode fieldNode = new FieldNode();
 		fieldNode.key = (String)nodeMap.get('key');
 		fieldNode.APIName = (String)nodeMap.get('APIName');
+		fieldNode.defaultValue = (String)nodeMap.get('default');
 		return fieldNode;
 	}
 	
@@ -59,7 +60,7 @@ public class NodeTreeConstructor {
 				childNode = buildLookupNode(childNodeMap);
 			} else if (nType == 'ChildSObjectNode') {
 				childNode = buildChildNode(childNodeMap);
-			} else if (nType == 'Node') {
+			} else if (nType == 'FieldNode') {
 				childNode = buildFieldNode(childNodeMap);
 			}
 			if (childNode != null) {

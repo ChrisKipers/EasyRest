@@ -1,4 +1,4 @@
-public virtual class Node {
+public abstract class Node {
 	public String nType		{get; set;}
 	public String key		{get; set;}
 	public String APIName	{get; set;}

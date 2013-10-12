@@ -90,8 +90,8 @@ public class MultiNodeResult extends NodeResult {
 			Set<String> fieldsIncludedInRequest = new Set<String>();
 			Map<String,Object> mapping = (Map<String,Object>)obj;
 			for (Node childNode : node.nodes) {
-				if (childNode.nType == 'Node') {
-					if (mapping.keyset().contains(childNode.key)) {
+				if (childNode.nType == 'FieldNode' && String.isNotBlank(childNode.APIName)) {
+					if (String.isNotBlank(childNode.key) && mapping.keyset().contains(childNode.key)) {
 						fieldsIncludedInRequest.add(childNode.APIName);
 						newObj.put(
 							childNode.APIName,
