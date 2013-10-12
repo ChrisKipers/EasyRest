@@ -4,7 +4,10 @@ public class BuildNodeResult {
 	
 	public static MultiNodeResult BuildNodeResult(IsolatedSObjectNode node, List<String> identifiers) {
 		MultiNodeResult nodeResult = new MultiNodeResult(node);
-		nodeResult.objs = DynamicHelper.queryAllFields(node.SObjectType, node.matchingField, identifiers);
+		List<SObject> objs = DynamicHelper.queryAllFields(node.SObjectType, node.matchingField, identifiers);
+		for (SObject obj : objs) {
+			nodeResult.sObjResults.add(new SObjectResult(obj));
+		}
 		processChildrenMulti(node,new List<MultiNodeResult>{nodeResult});
 		return nodeResult;
 	}
@@ -13,11 +16,11 @@ public class BuildNodeResult {
 		SingleNodeResult nodeResult = new SingleNodeResult(node);
 		List<SObject> objs = DynamicHelper.queryAllFields(node.SObjectType, node.matchingField, new List<String>{identifier});
 		if (objs.size() != 1) {
-			//@todo throw exception
+			return null;
 		}
-		nodeResult.obj = objs[0];
+		nodeResult.sObjResult = new SObjectResult(objs[0]);
 		Map<SObject, SingleNodeResult> singleMap = new Map<SObject, SingleNodeResult>{
-			nodeResult.obj => nodeResult
+			nodeResult.sObjResult.obj => nodeResult
 		};
 		processChildrenSingle(node, singleMap);
 		return nodeResult;
@@ -40,7 +43,7 @@ public class BuildNodeResult {
 		List<SObject> sObjects = DynamicHelper.queryAllFields(sObjectType, 'id', new List<String>(parentMap.keyset()));
 		for (SObject obj : sObjects) {
 			SingleNodeResult result = new SingleNodeResult(node);
-			result.obj = obj;
+			result.sObjResult = new SObjectResult(obj);
 			String objId = (String)obj.id;
 			SObject parent = parentMap.get(objId);
 			resultMap.put(parent, result);
@@ -71,7 +74,7 @@ public class BuildNodeResult {
 				result = new MultiNodeResult(node);
 				nodeResults.put(parent, result);
 			}
-			result.addObject(obj);
+			result.sObjResults.add(new SObjectResult(obj));
 		}
 		
 		return nodeResults;
@@ -99,8 +102,9 @@ public class BuildNodeResult {
 		//issues with multiple parents maybe? doubtfull though
 		Map<SObject,MultiNodeResult> currentSObjToItsResult = new Map<SObject,MultiNodeResult>();
 		for (MultiNodeResult result: previousResults) {
-			for (SObject obj : result.objs) {
-				currentSObjToItsResult.put(obj,result);
+			for (SObjectResult objResult : result.sObjResults) {
+				
+				currentSObjToItsResult.put(objResult.obj,result);
 			}
 		}
 		

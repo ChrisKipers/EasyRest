@@ -1,18 +1,13 @@
 public class SingleNodeResult extends NodeResult {
-	public SObject obj	{get; set;}
-	//public List<NodeResult> childrenResults	{get; set;}
-	public Map<String, NodeResult> children {get; set;}
-	public Set<String> fieldsIncludedInRequest {get; set;}
+	public SObjectResult sObjResult	{get; set;}
 	
 	/******************** Methods used to construct node from SObject ***************/
 	public SingleNodeResult(SObjectNode nodep) {
 		node = nodep;
-		children = new Map<String, NodeResult>();
-		fieldsIncludedInRequest = new Set<String>();
 	}
 	
 	public void addResult(NodeResult newResult) {
-		children.put(newResult.node.getHashKey(), newResult);
+		sObjResult.addResult(newResult);
 	}
 	 
 	protected override Map<String,Object> populateMap(Map<String,Object> existingMap) {
@@ -22,10 +17,10 @@ public class SingleNodeResult extends NodeResult {
 			existingMap.put(node.key,mapToPopulate);
 		}
 		//Populate the field values
-		populateMapWithChildrenFieldData(mapToPopulate,obj);
+		populateMapWithChildrenFieldData(mapToPopulate,sObjResult.obj);
 		
 		//Populate all the children
-		for (NodeResult childResult : children.values()) {
+		for (NodeResult childResult : sObjResult.childrenMap.values()) {
 			childResult.populateMap(mapToPopulate);
 		}
 		
@@ -50,82 +45,30 @@ public class SingleNodeResult extends NodeResult {
 	
 	private void construct(SObjectNode nodep, String sObjectType, Map<String, Object> mapping) {
 		node = nodep;
-		fieldsIncludedInRequest = new Set<String>();
-		children = new Map<String, NodeResult>();
-		obj = DynamicHelper.createObject(sObjectType);
-		for (Node childNode : node.nodes) {
-			if (childNode.nType == 'FieldNode' && String.isNotBlank(childNode.APIName)) {
-				if (String.isNotBlank(childNode.key) && mapping.keyset().contains(childNode.key)) {
-					fieldsIncludedInRequest.add(childNode.APIName);
-					obj.put(
-						childNode.APIName,
-						DynamicHelper.convertValue(
-							(String)mapping.get(childNode.key),
-							sObjectType,
-							childNode.APIName
-						)
-					);
-				}
-			} else if (childNode.nType == 'SObjectNode' || childNode.nType == 'IsolatedSObjectNode') {
-				Map<String, Object> mapToPopulateWith = mapping;
-				if (String.isNotBlank(childNode.key)) {
-					mapToPopulateWith = (Map<String, Object>)mapping.get(childNode.key);
-				}
-				if (mapToPopulateWith != null) {
-					SingleNodeResult newSR = null;
-					if (childNode.nType == 'IsolatedSObjectNode') {
-						newSR = new SingleNodeResult((IsolatedSObjectNode)childNode, mapToPopulateWith);
-					} else {
-						newSR = new SingleNodeResult(obj,(SObjectNode)childNode, mapToPopulateWith);
-					} 
-	  
-					addResult(newSr);
-				}
-				
-			} else if (childNode.nType == 'ChildSObjectNode') {
-				ChildSObjectNode csn = (ChildSObjectNode)childNode;
-				MultiNodeResult newMnr = null;
-				if (csn.isCollection) { 
-					List<Object> childObjectMappings = (List<Object>)mapping.get(csn.key);
-					if (childObjectMappings != null) {
-						newMnr = new MultiNodeResult(csn,childObjectMappings);
-						addResult(newMnr);
-					}
-				} else {
-					Map<String, Object> mapToPopulateWith = mapping;
-					if (String.isNotBlank(csn.key)) {
-						mapToPopulateWith = (Map<String, Object>)mapping.get(csn.key);
-					}
-					if (mapToPopulateWith != null) {
-						newMnr = new MultiNodeResult(csn, new List<Object>{mapToPopulateWith});
-						addResult(newMnr);
-					}
-				}
-			}
-		}
+		sObjResult = new SObjectResult(nodeP, sObjectType, mapping);
 	}
 	
 	public override void deleteRecords(List<SObject> allRecords) {
-		for (NodeResult result : children.values()) {
+		for (NodeResult result : sObjResult.childrenMap.values()) {
 			result.deleteRecords(allRecords);
 		}
-		if (obj.id != null) {
-			allRecords.add(obj);
+		if (sObjResult.obj.id != null) {
+			allRecords.add(sObjResult.obj);
 		}
 	}
 	
 	public void mergeResults(SingleNodeResult otherResult) {
-		otherResult.fieldsIncludedInRequest.remove('id');
-		for (String apiName : otherResult.fieldsIncludedInRequest) {
-			obj.put(apiName, otherResult.obj.get(apiName));
+		otherResult.sObjResult.fieldsInRequest.remove('id');
+		for (String apiName : otherResult.sObjResult.fieldsInRequest) {
+			sObjResult.obj.put(apiName, otherResult.sObjResult.obj.get(apiName));
 		}
 		
-		for (String nodeHash : otherResult.children.keyset()) {
-			NodeResult nr = children.get(nodeHash);
+		for (String nodeHash : otherResult.sObjResult.childrenMap.keyset()) {
+			NodeResult nr = sObjResult.childrenMap.get(nodeHash);
+			NodeResult otherNr = otherResult.sObjResult.childrenMap.get(nodeHash);
 			if (nr == null) {
-				children.put(nodeHash, nr);
+				sObjResult.addResult(otherNr);
 			} else {
-				NodeResult otherNr = otherResult.children.get(nodeHash);
 				if (otherNr != null && otherNr instanceof SingleNodeResult) {
 					SingleNodeResult snr = (SingleNodeResult)nr;
 					SingleNodeResult otherSnr = (SingleNodeResult)otherNr;

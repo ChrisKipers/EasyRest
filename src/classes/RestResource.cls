@@ -8,13 +8,20 @@ global class RestResource {
 		
 		Blob rBody = rr.requestBody;
 		String body = rBody.toString();
-		
-		//Process string into map or list
-		Map<String,Object> params = (Map<String,Object>)JSON.deserializeUntyped(body);
 		List<IsolatedSObjectNode> nodes = NodeTreeConstructor.constructNodeTree(schema.Schema_Definition__c);
-		SingleNodeResult snr = new SingleNodeResult(nodes[0],params);
-		snr.save();
-		rs.responseBody = Blob.valueOf(JSON.serialize(snr.buildMap()));
+		//Process string into map or list
+		Object params = JSON.deserializeUntyped(body);
+		if (params instanceof Map<String,Object>) {
+			Map<String,Object> paramsMap = (Map<String,Object>)params;
+			SingleNodeResult snr = new SingleNodeResult(nodes[0],paramsMap);
+			snr.save();
+			rs.responseBody = Blob.valueOf(JSON.serialize(snr.buildMap()));
+		} else if (params instanceof List<Object>) {
+			List<Object> arrayOfParams = (List<Object>)params;
+			MultiNodeResult mnr = new MultiNodeResult(nodes[0],arrayOfParams);
+			mnr.save();
+			rs.responseBody = Blob.valueOf(JSON.serialize(mnr.buildArray()));
+		}
 	}
 	
 	@HttpGet
@@ -22,10 +29,21 @@ global class RestResource {
 		RestRequest rr = RestContext.request;
 		RestResponse rs = RestContext.response;
 		Rest_Schema__c schema = getRestResource(rr.requestURI);
-		String resourceId = getRestId(rr.requestURI);
-		List<IsolatedSObjectNode> nodes = NodeTreeConstructor.constructNodeTree(schema.Schema_Definition__c);
-		SingleNodeResult result = NodeResult.buildResults(nodes[0],resourceId);
-		rs.responseBody = Blob.valueOf(JSON.serialize(result.buildMap()));
+		List<String> resourceIds = getRestId(rr.requestURI);
+		if (resourceIds.size() > 0) {
+			List<IsolatedSObjectNode> nodes = NodeTreeConstructor.constructNodeTree(schema.Schema_Definition__c);
+			if (resourceIds.size() == 0){
+				SingleNodeResult result = NodeResult.buildResults(nodes[0],resourceIds[0]);
+				if (result != null) {
+					rs.responseBody = Blob.valueOf(JSON.serialize(result.buildMap()));
+				} else {
+					rs.statusCode = 404;
+				}
+			} else {
+				MultiNodeResult results = NodeResult.buildResults(nodes[0],resourceIds);
+				rs.responseBody = Blob.valueOf(JSON.serialize(results.buildArray()));
+			}
+		}
 	}
 	
 	@HttpDelete
@@ -33,29 +51,73 @@ global class RestResource {
 		RestRequest rr = RestContext.request;
 		RestResponse rs = RestContext.response;
 		Rest_Schema__c schema = getRestResource(rr.requestURI);
-		String resourceId = getRestId(rr.requestURI);
-		List<IsolatedSObjectNode> nodes = NodeTreeConstructor.constructNodeTree(schema.Schema_Definition__c);
-		SingleNodeResult result = NodeResult.buildResults(nodes[0],resourceId);
-		result.deleteRecords();
+		List<String> resourceIds = getRestId(rr.requestURI);
+		if (resourceIds.size() > 0) {
+			List<IsolatedSObjectNode> nodes = NodeTreeConstructor.constructNodeTree(schema.Schema_Definition__c);
+			if (resourceIds.size() == 1) {
+				SingleNodeResult result = NodeResult.buildResults(nodes[0],resourceIds[0]);
+				if (result != null) {
+					result.deleteRecords();
+				} else {
+					rs.statusCode = 404;
+				}
+			} else {
+				MultiNodeResult results = NodeResult.buildResults(nodes[0],resourceIds);
+				results.deleteRecords();
+			}
+		} else {
+			rs.statusCode = 404;
+		}
+
+		
 	}
 	
 	@HttpPut
 	global static void doPut(){
 		RestRequest rr = RestContext.request;
+		RestResponse rs = RestContext.response;
 		Blob rBody = rr.requestBody;
 		String body = rBody.toString();
-		//Process string into map or list
-		Map<String,Object> params = (Map<String,Object>)JSON.deserializeUntyped(body);
-		RestResponse rs = RestContext.response;
+		
 		Rest_Schema__c schema = getRestResource(rr.requestURI);
-		String resourceId = getRestId(rr.requestURI);
 		List<IsolatedSObjectNode> nodes = NodeTreeConstructor.constructNodeTree(schema.Schema_Definition__c);
-		SingleNodeResult existingResults = NodeResult.buildResults(nodes[0],resourceId);
-		SingleNodeResult updatedResults = new SingleNodeResult(nodes[0],params);
-		existingResults.mergeResults(updatedResults);
-		existingResults.save();
-		rs.responseBody = Blob.valueOf(JSON.serialize(existingResults.buildMap()));
+		Object params = JSON.deserializeUntyped(body);
+		
+		if (params instanceof Map<String,Object>) {
+			Map<String,Object> paramMap = (Map<String,Object>)params;
+			List<String> resourceIds = getRestId(rr.requestURI);
+			if (resourceIds.size() == 1) {
+				SingleNodeResult existingResults = NodeResult.buildResults(nodes[0],resourceIds[0]);
+				if (existingResults != null) {
+					SingleNodeResult updatedResults = new SingleNodeResult(nodes[0],paramMap);
+					existingResults.mergeResults(updatedResults);
+					existingResults.save();
+					rs.responseBody = Blob.valueOf(JSON.serialize(existingResults.buildMap()));
+				} else {
+					rs.statusCode = 404;
+				}
+			} else {
+				rs.statusCode = 404;
+			}
+		} else if (params instanceof List<Object>) {
+			List<Object> arrayOfParams = (List<Object>)params;
+			MultiNodeResult updatedResults = new MultiNodeResult(nodes[0],arrayOfParams);
+			List<String> identifiers = new List<String>();
+			for (SObjectResult sObjResult: updatedResults.sObjResults) {
+				Object identifierValue = sObjResult.obj.get(nodes[0].matchingField);
+				if (identifierValue != null) {
+					String identifier = String.valueOf(identifierValue);
+					identifiers.add(identifier);
+				}
+			}
+			MultiNodeResult originalResults = BuildNodeResult.BuildNodeResult(nodes[0],identifiers);
+			originalResults.mergeResults(updatedResults,true);
+			originalResults.save();
+			rs.responseBody = Blob.valueOf(JSON.serialize(originalResults.buildArray()));
+		}
 
+		
+		
 	}
 	
 	private static Rest_Schema__c getRestResource(String requestUri) {
@@ -76,8 +138,15 @@ global class RestResource {
 		return schema;
 	}
 	
-	private static String getRestId(String uri) {
+	private static List<String> getRestId(String uri) {
 		List<String> uriParts = uri.split('/');
-		return uriParts[uriParts.size() - 1];
+		String idToken = uriParts[uriParts.size() - 1];
+		List<String> allIds = idToken.split('&');
+		List<String> urldecodedIds = new List<String>();
+		for (String encodedUrl : allIds) {
+			//urldecodedIds.add(EncodingUtil.urlDecode(encodedUrl));
+			urldecodedIds.add(encodedUrl);
+		}
+		return urldecodedIds;
 	}
 }

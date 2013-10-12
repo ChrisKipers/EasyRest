@@ -4,9 +4,15 @@ public abstract class NodeResult {
 	protected abstract Map<String,Object> populateMap(Map<String,Object> existingMap);
 	
 	protected void populateMapWithChildrenFieldData(Map<String,Object> mapping, Sobject obj) {
-		for (Node fieldNode : node.nodes) {
-			if (fieldNode.nType == 'FieldNode') {
-				mapping.put(fieldNode.key, String.valueOf(obj.get(fieldNode.APIName)));
+		for (Node childNode : node.nodes) {
+			if (childNode.nType == 'FieldNode') {
+				FieldNode fieldNode = (FieldNode)childNode;
+				if (String.isBlank(fieldNode.APIName) && String.isNotBlank(fieldNode.defaultValue)&& String.isNotBlank(fieldNode.key)) {
+					mapping.put(fieldNode.key, fieldNode.defaultValue);
+				} else if (String.isNotBlank(fieldNode.key) && String.isNotBlank(fieldNode.APIName)){
+					mapping.put(fieldNode.key, String.valueOf(obj.get(fieldNode.APIName)));
+				}
+				
 			}
 		}
 	}
