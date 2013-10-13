@@ -15,6 +15,36 @@ public class DynamicHelper {
     	List<Schema.sObjectType> relationships = sf.getDescribe().getReferenceTo();
     	return relationships[0].getDescribe().getName();
     }
+    
+    public static String getLookupSObjectType(String fieldName, String parentSObjectType) {
+    	Schema.SObjectField sf = schema.getGlobalDescribe().get(parentSObjectType).getDescribe().fields.getMap().get(fieldName);
+    	List<Schema.sObjectType> relationships = sf.getDescribe().getReferenceTo();
+    	return relationships[0].getDescribe().getName();
+    }
+    
+    public static List<Schema.DescribeFieldResult> getAllFields(String sObjectType) {
+    	List<Schema.DescribeFieldResult> allFields = new List<Schema.DescribeFieldResult>();
+    	Map<String, Schema.SObjectField> fldObjMap = schema.getGlobalDescribe().get(sObjectType).getDescribe().fields.getMap();
+    	for(Schema.SObjectField s : fldObjMap.values())
+		{
+		  Schema.DescribeFieldResult desResults = s.getDescribe();
+		  allFields.add(desResults);
+		}
+		
+		return allFields;
+    }
+
+	public static List<Schema.ChildRelationship> getAllRelatedObjects(String sObjectType) {
+		Schema.SObjectType sObjectSchema = schema.getGlobalDescribe().get(sObjectType);
+		Schema.DescribeSObjectResult sd = sObjectSchema.getDescribe();
+		List<Schema.ChildRelationship> children = sd.getChildRelationships();
+		return children;
+		
+	}
+	
+	public static List<Schema.SObjectType> getAllSObjectsInOrg() {
+		return schema.getGlobalDescribe().values();
+	}
 
     public static List<SObject> queryAllFields(String sObjectType, String idKey, String idValue)
 	{

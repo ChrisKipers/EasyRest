@@ -1,0 +1,26 @@
+<apex:page standardController="Rest_Schema__c" extensions="SchemaBuilderController">
+	<script>
+		var isolatedNodeTemplateUrl = '{!URLFOR($Resource.IsolatedNodeTemplate)}';
+		var fieldNodeTempaleUrl = '{!URLFOR($Resource.FieldNodeTemplate)}';
+		var existingSchema = '{!schema.Schema_Definition__c}';
+	</script>
+	<apex:includeScript value="{!$Resource.AngularJs}"/>
+	<apex:includeScript value="{!$Resource.SchemaBuilderJsController}"/>
+	<apex:stylesheet value="{!$Resource.SchemaBuilderStyleSheet}"/>
+	<apex:form >
+		<apex:actionFunction name="submitSchema" action="{!submitSchema}" rerender="rerenderDiv">
+			<apex:param name="schema" assignTo="{!schema.Schema_Definition__c}" value=""/>
+		</apex:actionFunction>
+		<div id="standard-fields">
+			<label>Rest Resource</label>
+			<apex:inputField value="{!schema.Rest_Resource__c}"/>
+			<label>Version</label>
+			<apex:inputField value="{!schema.Version__c}"/>
+		</div>
+		<apex:outputPanel id="rerenderDiv" layout="none"></apex:outputPanel>
+		<div class="app" ng-app="SchemaBuilder" ng-controller="Builder">
+			<isolatednode objdata="schema"/>
+			<input type="button" value="Save Schema" ng-click="saveSchema()"/>
+		</div>
+	</apex:form>
+</apex:page>

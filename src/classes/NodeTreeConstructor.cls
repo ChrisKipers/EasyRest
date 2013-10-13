@@ -1,12 +1,11 @@
 public class NodeTreeConstructor {
 	public static List<IsolatedSObjectNode> constructNodeTree(String schemaBody) {
 
-		List<Object> root = (List<Object>)JSON.deserializeUntyped(schemaBody);
+		Map<String,Object> root = (Map<String,Object>)JSON.deserializeUntyped(schemaBody);
 		
 		List<IsolatedSObjectNode> rootsObjects = new List<IsolatedSObjectNode>();
-		for (Object independentSObject : root) {
-			rootsObjects.add(buildIsolatedSObject((Map<String,Object>)independentSObject));
-		}
+		rootsObjects.add(buildIsolatedSObject(root));
+
 		
 		return rootsObjects;
 	}
