@@ -1,4 +1,5 @@
 public class SavePackage {
+
 	public List<NodeResult> results;
 	public SObjectNode node;
 		
@@ -79,7 +80,9 @@ public class SavePackage {
 					NodeResult lookup = snr.sObjResult.childrenMap.get(lNode.getHashKey());
 					if (lookup != null && lookup instanceof SingleNodeResult) {
 						SingleNodeResult sLookup = (SingleNodeResult)lookup;
-						snr.sObjResult.obj.put(lNode.APIName, sLookup.sObjResult.obj.id);
+						if (snr.sObjResult.obj.id == null) {
+							snr.sObjResult.obj.put(lNode.APIName, sLookup.sObjResult.obj.id);
+						}
 					}
 				} else if (nr instanceof MultiNodeResult) {
 					MultiNodeResult mnr = (MultiNodeResult)nr;
@@ -87,7 +90,9 @@ public class SavePackage {
 						NodeResult lookup = sObjResult.childrenMap.get(lNode.getHashKey());
 						if (lookup != null && lookup instanceof SingleNodeResult) {
 							SingleNodeResult sLookup = (SingleNodeResult)lookup;
-							sObjResult.obj.put(lNode.APIName, sLookup.sObjResult.obj.id);
+							if (sObjResult.obj.id == null) {
+								sObjResult.obj.put(lNode.APIName, sLookup.sObjResult.obj.id);
+							}
 						}
 					}
 				}
@@ -161,7 +166,10 @@ public class SavePackage {
 					if (child != null && child instanceof MultiNodeResult) {
 						MultiNodeResult mChild = (MultiNodeResult)child;
 						for (SObjectResult cSObjectResult : mChild.sObjResults) {
-							cSObjectResult.obj.put(cNode.relationKey, snr.sObjResult.obj.id);
+							System.debug('Test: ' + JSON.serialize(cSObjectResult));
+							if (cSObjectResult.obj.id == null) {
+								cSObjectResult.obj.put(cNode.relationKey, snr.sObjResult.obj.id);
+							}
 						}
 					}
 				} else if (nr instanceof MultiNodeResult) {
@@ -171,7 +179,9 @@ public class SavePackage {
 						if (child != null && child instanceof MultiNodeResult) {
 							MultiNodeResult mChild = (MultiNodeResult)child;
 							for (SObjectResult cSObjResult : mChild.sObjResults) {
-								cSObjResult.obj.put(cNode.relationKey, objResult.obj.id);
+								if (cSObjResult.obj.id == null) {
+									cSObjResult.obj.put(cNode.relationKey, objResult.obj.id);
+								}
 							}
 						}
 					}

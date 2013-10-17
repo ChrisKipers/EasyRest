@@ -98,7 +98,7 @@ public class DynamicHelper {
 			if (fieldResult.getType() == Schema.DisplayType.Integer) {
 				convertedValue = Integer.valueOf(value);
 			} else if (fieldResult.getType() == Schema.DisplayType.base64) {
-				convertedValue = (String)value;
+				convertedValue = Blob.valueOf(value);
 			} else if (fieldResult.getType() == Schema.DisplayType.Boolean) {
 				convertedValue = Boolean.valueOf(value);
 			} else if (fieldResult.getType() == Schema.DisplayType.Combobox) {

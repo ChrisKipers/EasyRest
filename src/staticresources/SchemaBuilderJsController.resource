@@ -1,12 +1,8 @@
 var app = angular.module('SchemaBuilder',[]);
 app.controller('Builder',['$scope',function($scope) {
-	if (existingSchema) {
-		$scope.schema = JSON.parse(existingSchema);
-		console.log('parse');
-	} else {
-		$scope.schema = {'nType':'IsolatedSObjectNode'};
-		console.log('new');
-	}
+
+	$scope.schema = existingSchema
+	console.log(existingSchema);
 
 	$scope.saveSchema = function() {
 		console.log(angular.toJson($scope.schema));
@@ -40,9 +36,11 @@ app.directive('isolatednode',['RecursionHelper',function(RecursionHelper){
 		restrict: 'E',
 		scope: {
 			parent:'@',
-			objdata: '='
+			objdata: '=',
+			remove: '&'
 		},
 		controller: ['$scope', '$attrs',function($scope,$attrs){
+		//console.log(JSON.stringify($scope.objdata));
 			$scope.isRoot = !$scope.parent;
 			if (!$scope.objdata.nodes) {
 				$scope.objdata.nodes = [];
@@ -60,7 +58,7 @@ app.directive('isolatednode',['RecursionHelper',function(RecursionHelper){
 				$scope.objdata.nodes.push({"nType":"FieldNode"});
 			}
 			$scope.addRelatedObject = function() {
-				$scope.objdata.nodes.push({"nType":"ChildSObjectNode"});
+				$scope.objdata.nodes.push({"nType":"ChildSObjectNode", "isCollection":true});
 			}
 			
 			if ($scope.isRoot) {
@@ -79,6 +77,9 @@ app.directive('isolatednode',['RecursionHelper',function(RecursionHelper){
 			
 			$scope.$watch('objdata.SObjectType',function(newValue,oldValue){
 				if(newValue || oldValue) {
+					if (newValue != oldValue) {
+						$scope.objdata.nodes = [];
+					}
 					if (newValue) {
 						SchemaBuilderController.getFieldsForObject($scope.objdata.SObjectType,function(result, event){
 							$scope.$apply(function(){
@@ -86,7 +87,10 @@ app.directive('isolatednode',['RecursionHelper',function(RecursionHelper){
 							});
 						});
 						if (!$scope.isRoot) {
-							$scope.objdata.relationKey = $scope.getRelationKey($scope.objdata.SObjectType);
+							var newRKey = $scope.getRelationKey($scope.objdata.SObjectType);
+							if (newRKey) {
+								$scope.objdata.relationKey = newRKey;
+							}
 						}
 					} else {
 						$scope.allFieldsForSObjectType = [];
@@ -119,6 +123,10 @@ app.directive('isolatednode',['RecursionHelper',function(RecursionHelper){
 					$scope.objdata.matchingField = '';
 				}
 			},true);
+			
+			$scope.removeItem = function(index) {
+				$scope.objdata.nodes.splice(index,1);
+			}
 		}],
 		compile: function(element) {
 			return RecursionHelper.compile(element);
@@ -136,11 +144,16 @@ app.directive('field',['RecursionHelper',function(RecursionHelper){
 		scope: {
 			parent:'@',
 			fieldchoices:'=',
-			fielddata:'='
+			fielddata:'=',
+			remove: '&'
 		},
 		controller: ['$scope', '$attrs',function($scope,$attrs){
+				
 			$scope.childFieldChoices = [];
 			$scope.isField = true;
+			if ($scope.fielddata['nType'] == 'SObjectNode') {
+				$scope.isField = false;
+			}
 			$scope.sObjectType = '';
 			$scope.getTypeFromAPI = function(apiName) {
 				var type = '';
@@ -152,37 +165,49 @@ app.directive('field',['RecursionHelper',function(RecursionHelper){
 				});
 				return type;
 			}
+			
+			$scope.$watch('fieldchoices', function() {
+				$scope.configLookup(false);
+			});
 		
 			$scope.$watch('fielddata.APIName',function() {
-				var newType = $scope.getTypeFromAPI($scope.fielddata.APIName);
-				if (newType == 'REFERENCE') {
-					$scope.fielddata['nType'] = 'SObjectNode';
-					$scope.isField = false;
-					$scope.fielddata['nodes'] = [];
-					SchemaBuilderController.getFieldsForObjectLookup($scope.fielddata.APIName,$scope.parent,function(result, event){
-						$scope.$apply(function(){
-							$scope.childFieldChoices = result;
-						});
-					});
-					SchemaBuilderController.getSObjectType($scope.fielddata.APIName,$scope.parent,function(result, event){
-						$scope.$apply(function(){
-							$scope.sObjectType = result;
-						});
-					});
-				} else {
-					$scope.fielddata['nType'] = 'FieldNode';
-					$scope.isField = true;
-					delete $scope.fielddata['nodes'];
-					$scope.childFieldChoices = [];
-					$scope.sObjectType = '';
-				}
+				$scope.configLookup(true);
 			});
+			
+			$scope.configLookup = function(clearNodes) {
+				var newType = $scope.getTypeFromAPI($scope.fielddata.APIName);
+				if (newType) {
+					if (newType == 'REFERENCE') {
+						$scope.fielddata['nType'] = 'SObjectNode';
+						$scope.isField = false;
+						if (clearNodes) {
+							$scope.fielddata['nodes'] = [];
+						}
+						SchemaBuilderController.getFieldsForObjectLookup($scope.fielddata.APIName,$scope.parent,function(result, event){
+							$scope.$apply(function(){
+								$scope.childFieldChoices = result;
+							});
+						});
+						SchemaBuilderController.getSObjectType($scope.fielddata.APIName,$scope.parent,function(result, event){
+							$scope.$apply(function(){
+								$scope.sObjectType = result;
+							});
+						});
+					} else {
+						$scope.fielddata['nType'] = 'FieldNode';
+						$scope.isField = true;
+						delete $scope.fielddata['nodes'];
+						$scope.childFieldChoices = [];
+						$scope.sObjectType = '';
+					}
+				}
+			}
 			
 			$scope.addField = function() {
 				$scope.fielddata['nodes'].push({'nType':'FieldNode'});
 			}
 			$scope.addRelatedObject = function() {
-				$scope.fielddata['nodes'].push({'nType':'ChildSObjectNode'});
+				$scope.fielddata['nodes'].push({'nType':'ChildSObjectNode', "isCollection":true});
 			}
 		}],
 		compile: function(element) {

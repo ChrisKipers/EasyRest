@@ -1,26 +1,65 @@
-<apex:page standardController="Rest_Schema__c" extensions="SchemaBuilderController">
+<apex:page standardController="Schema_Definition__c" extensions="SchemaBuilderController">
 	<script>
 		var isolatedNodeTemplateUrl = '{!URLFOR($Resource.IsolatedNodeTemplate)}';
 		var fieldNodeTempaleUrl = '{!URLFOR($Resource.FieldNodeTemplate)}';
-		var existingSchema = '{!schema.Schema_Definition__c}';
+		var existingSchemaString = '{!schema.Definition__c}';
+		var existingSchema = {};
+		if (existingSchemaString) {
+			try {
+				existingSchema = JSON.parse(existingSchemaString)
+			}catch (err){}
+		}
+		function setPreview() {
+			var schemaString = JSON.stringify(existingSchema);
+			buildPreview(schemaString);
+		}
+		var j$ = jQuery.noConflict();
+		j$(document).ready(function(){
+			j$( "#tabs" ).tabs();
+		});
 	</script>
 	<apex:includeScript value="{!$Resource.AngularJs}"/>
 	<apex:includeScript value="{!$Resource.SchemaBuilderJsController}"/>
+	<apex:includeScript value="{!URLFOR($Resource.jqueryUI,'jquery-ui-1.10.3.custom/js/jquery-1.9.1.js')}"/>
+	<apex:includeScript value="{!URLFOR($Resource.jqueryUI,'jquery-ui-1.10.3.custom/js/jquery-ui-1.10.3.custom.min.js')}"/>
 	<apex:stylesheet value="{!$Resource.SchemaBuilderStyleSheet}"/>
+	<apex:stylesheet value="{!URLFOR($Resource.jqueryUI,'jquery-ui-1.10.3.custom/css/ui-lightness/jquery-ui-1.10.3.custom.min.css')}"/>
 	<apex:form >
-		<apex:actionFunction name="submitSchema" action="{!submitSchema}" rerender="rerenderDiv">
-			<apex:param name="schema" assignTo="{!schema.Schema_Definition__c}" value=""/>
+		<apex:actionFunction name="submitSchema" action="{!submitSchema}" rerender="rerenderDiv" oncomplete="alert('saved');">
+			<apex:param name="schema" assignTo="{!schema.Definition__c}" value=""/>
 		</apex:actionFunction>
-		<div id="standard-fields">
-			<label>Rest Resource</label>
-			<apex:inputField value="{!schema.Rest_Resource__c}"/>
-			<label>Version</label>
-			<apex:inputField value="{!schema.Version__c}"/>
-		</div>
+		<apex:actionFunction name="buildPreview" action="{!setPreviewString}" rerender="previewResults">
+			<apex:param name="schema" assignTo="{!schema.Definition__c}" value=""/>
+		</apex:actionFunction>
 		<apex:outputPanel id="rerenderDiv" layout="none"></apex:outputPanel>
-		<div class="app" ng-app="SchemaBuilder" ng-controller="Builder">
-			<isolatednode objdata="schema"/>
-			<input type="button" value="Save Schema" ng-click="saveSchema()"/>
+		<div id="standard-fields">
+			<label>Schema Definition Name:</label>
+			<apex:inputField value="{!schema.Name}" />
+		</div>
+		<div id="tabs">
+			<ul>
+				<li><a href="#builder">Builder</a></li>
+				<li><a href="#preview">Preview</a></li>
+			</ul>
+			<div id="builder" class="app" ng-app="SchemaBuilder" ng-controller="Builder">
+				<isolatednode objdata="schema"/>
+				<input type="button" value="Save Schema" ng-click="saveSchema()"/>
+			</div>
+			<div id="preview">
+				<apex:inputText value="{!previewId}" />
+				<input type="button" value="Create Preview" onclick="setPreview()"/>
+				<apex:outputPanel id="previewResults" layout="block">
+					<pre id="previewResults">
+					</pre>
+					<script>
+						var previewText = '{!previewString}';
+						if (previewText) {
+							var previewJson = JSON.parse(previewText);
+							j$('#previewResults').html(JSON.stringify(previewJson, null, '\t'));
+						}
+					</script>
+				</apex:outputPanel>
+			</div>
 		</div>
 	</apex:form>
 </apex:page>

@@ -1,4 +1,7 @@
 <div ng-class="{'field-node' : isField, 'sobject-node' : !isField}">
+	<div ng-show="!isRoot">
+		<a ng-click="remove()">Remove</a>
+	</div>
 	<label>Field</label>
 	<select ng-model="fielddata.APIName"  ng-options="field.name as field.label for field in fieldchoices">
 	</select>

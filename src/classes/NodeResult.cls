@@ -25,6 +25,14 @@ public abstract class NodeResult {
 	public static MultiNodeResult buildResults(IsolatedSObjectNode nodeTree, List<String> identifiers) {
 		return BuildNodeResult.BuildNodeResult(nodeTree, identifiers);
 	}
+	
+	public static SingleNodeResult buildResultsBySFId(IsolatedSObjectNode nodeTree, String sfId) {
+		return BuildNodeResult.BuildNodeResultBySFId(nodeTree, sfId);
+	}
+	
+	public static MultiNodeResult buildResultsBySFId(IsolatedSObjectNode nodeTree, List<String> sfIds) {
+		return BuildNodeResult.BuildNodeResultBySFId(nodeTree, sfIds);
+	}
 
 	public void save() {
 		SavePackage sp = new SavePackage(new List<NodeResult>{this},node);

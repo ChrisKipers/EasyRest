@@ -2,9 +2,25 @@ public class BuildNodeResult {
 	
 	/***************** Build node results from SObject in Database *************************/
 	
+	public static MultiNodeResult BuildNodeResultBySFId(IsolatedSObjectNode node, List<String> sfIds) {
+		return BuildNodeResult(node, sfIds, 'id');
+	}
+	
+	public static SingleNodeResult BuildNodeResultBySFId(IsolatedSObjectNode node, String sfIds) {
+		return BuildNodeResult(node, sfIds, 'id');
+	}
+	
 	public static MultiNodeResult BuildNodeResult(IsolatedSObjectNode node, List<String> identifiers) {
+		return BuildNodeResult(node, identifiers, node.matchingField);
+	}
+	
+	public static SingleNodeResult BuildNodeResult(IsolatedSObjectNode node, String identifier) {
+		return BuildNodeResult(node, identifier, node.matchingField);
+	}
+	
+	public static MultiNodeResult BuildNodeResult(IsolatedSObjectNode node, List<String> identifiers, String identifierKey) {
 		MultiNodeResult nodeResult = new MultiNodeResult(node);
-		List<SObject> objs = DynamicHelper.queryAllFields(node.SObjectType, node.matchingField, identifiers);
+		List<SObject> objs = DynamicHelper.queryAllFields(node.SObjectType, identifierKey, identifiers);
 		for (SObject obj : objs) {
 			nodeResult.sObjResults.add(new SObjectResult(obj));
 		}
@@ -12,9 +28,9 @@ public class BuildNodeResult {
 		return nodeResult;
 	}
 	
-	public static SingleNodeResult BuildNodeResult(IsolatedSObjectNode node, String identifier) {
+	public static SingleNodeResult BuildNodeResult(IsolatedSObjectNode node, String identifier, String identifierKey) {
 		SingleNodeResult nodeResult = new SingleNodeResult(node);
-		List<SObject> objs = DynamicHelper.queryAllFields(node.SObjectType, node.matchingField, new List<String>{identifier});
+		List<SObject> objs = DynamicHelper.queryAllFields(node.SObjectType, identifierKey, new List<String>{identifier});
 		if (objs.size() != 1) {
 			return null;
 		}
@@ -84,9 +100,13 @@ public class BuildNodeResult {
 		for (Node childNode : node.nodes) {
 			Map<SObject, NodeResult> results = null;
 			if (childNode.nType == 'SObjectNode') {
+				SObjectNode sNode = (SObjectNode)childNode;
 				results = processesLookup((SObjectNode)childNode, new List<SObject>(previousResults.keyset()));
+				processChildrenSingle(sNode,(Map<SObject, SingleNodeResult>)results);
 			} else if (childNode.nType == 'ChildSObjectNode') {
+				ChildSObjectNode cNode = (ChildSObjectNode)childNode;
 				results = processesChild((ChildSObjectNode)childNode, new List<SObject>(previousResults.keyset()));
+				processChildrenMulti(cNode, (List<MultiNodeResult>)results.values());
 			}
 			
 			if (results != null) {
@@ -103,17 +123,20 @@ public class BuildNodeResult {
 		Map<SObject,MultiNodeResult> currentSObjToItsResult = new Map<SObject,MultiNodeResult>();
 		for (MultiNodeResult result: previousResults) {
 			for (SObjectResult objResult : result.sObjResults) {
-				
 				currentSObjToItsResult.put(objResult.obj,result);
 			}
 		}
-		
+
 		for (Node childNode : node.nodes) {
 			Map<SObject, NodeResult> results = null;
 			if (childNode.nType == 'SObjectNode') {
-				results = processesLookup((SObjectNode)childNode, new List<SObject>(currentSObjToItsResult.keyset()));
+				SObjectNode sNode = (SObjectNode)childNode;
+				results = processesLookup(sNode, new List<SObject>(currentSObjToItsResult.keyset()));
+				processChildrenSingle(sNode,(Map<SObject, SingleNodeResult>)results);
 			} else if (childNode.nType == 'ChildSObjectNode') {
-				results = processesChild((ChildSObjectNode)childNode, new List<SObject>(currentSObjToItsResult.keyset()));
+				ChildSObjectNode cNode = (ChildSObjectNode)childNode;
+				results = processesChild(cNode, new List<SObject>(currentSObjToItsResult.keyset()));
+				processChildrenMulti(cNode, (List<MultiNodeResult>)results.values());
 			}
 			
 			if (results != null) {
