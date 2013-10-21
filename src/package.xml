@@ -1,7 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <types>
-        <members>*</members>
+        <members>BuildNodeResult</members>
+        <members>ChildSObjectNode</members>
+        <members>DynamicHelper</members>
+        <members>FieldNode</members>
+        <members>IsolatedSObjectNode</members>
+        <members>MultiNodeResult</members>
+        <members>Node</members>
+        <members>NodeResult</members>
+        <members>NodeTreeConstructor</members>
+        <members>RestResource</members>
+        <members>SObjectNode</members>
+        <members>SObjectResult</members>
+        <members>SavePackage</members>
+        <members>SchemaBuilderController</members>
+        <members>SendControlCenterController</members>
+        <members>SingleNodeResult</members>
+        <members>XMLParser</members>
         <name>ApexClass</name>
     </types>
     <types>
@@ -9,12 +25,17 @@
         <name>ApexComponent</name>
     </types>
     <types>
-        <members>*</members>
+        <members>SchemaBuilder</members>
+        <members>SendControlCenter</members>
         <name>ApexPage</name>
     </types>
     <types>
         <members>*</members>
         <name>ApexTrigger</name>
+    </types>
+    <types>
+        <members>*</members>
+        <name>CustomObject</name>
     </types>
     <types>
         <members>*</members>
