@@ -65,7 +65,7 @@ public with sharing class SchemaBuilderController {
 	public SchemaBuilderController(ApexPages.StandardController controller) {
 		Id schemaId = controller.getId();
 		if (schemaId != null) {
-			List<Schema_Definition__c> schemas = (List<Schema_Definition__c>)DynamicHelper.queryAllFields('Schema_Definition__c', 'id', String.valueOf(schemaId));
+			List<Schema_Definition__c> schemas = (List<Schema_Definition__c>)DynamicHelper.queryAllFields('EasyConnect__Schema_Definition__c', 'id', String.valueOf(schemaId));
 			if (schemas.size() == 1) {
 				schema = schemas[0];
 				

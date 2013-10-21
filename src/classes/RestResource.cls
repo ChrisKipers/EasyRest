@@ -127,8 +127,8 @@ global class RestResource {
 	
 	private static Receive_Configuration_Version__c getConfiguration(String requestUri) {
 		List<String> uriParts = requestUri.split('/');
-		String version = uriParts[2];
-		String endPointExtension = uriParts[3];
+		String version = uriParts[3];
+		String endPointExtension = uriParts[4];
 		
 		Receive_Configuration_Version__c config = [
 													SELECT Active__c, 

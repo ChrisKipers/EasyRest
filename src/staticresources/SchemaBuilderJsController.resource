@@ -62,13 +62,13 @@ app.directive('isolatednode',['RecursionHelper',function(RecursionHelper){
 			}
 			
 			if ($scope.isRoot) {
-				SchemaBuilderController.getAllSObjectsInOrg(function(result, event){
+				EasyConnect.SchemaBuilderController.getAllSObjectsInOrg(function(result, event){
 					$scope.$apply(function(){
 						$scope.allSObjects = result;
 					});
 				});
 			} else {
-				SchemaBuilderController.getAllChildren($scope.parent,function(result, event){
+				EasyConnect.SchemaBuilderController.getAllChildren($scope.parent,function(result, event){
 					$scope.$apply(function(){
 						$scope.allSObjects = result;
 					});
@@ -81,7 +81,7 @@ app.directive('isolatednode',['RecursionHelper',function(RecursionHelper){
 						$scope.objdata.nodes = [];
 					}
 					if (newValue) {
-						SchemaBuilderController.getFieldsForObject($scope.objdata.SObjectType,function(result, event){
+						EasyConnect.SchemaBuilderController.getFieldsForObject($scope.objdata.SObjectType,function(result, event){
 							$scope.$apply(function(){
 								$scope.allFieldsForSObjectType = result;
 							});
@@ -183,12 +183,12 @@ app.directive('field',['RecursionHelper',function(RecursionHelper){
 						if (clearNodes) {
 							$scope.fielddata['nodes'] = [];
 						}
-						SchemaBuilderController.getFieldsForObjectLookup($scope.fielddata.APIName,$scope.parent,function(result, event){
+						EasyConnect.SchemaBuilderController.getFieldsForObjectLookup($scope.fielddata.APIName,$scope.parent,function(result, event){
 							$scope.$apply(function(){
 								$scope.childFieldChoices = result;
 							});
 						});
-						SchemaBuilderController.getSObjectType($scope.fielddata.APIName,$scope.parent,function(result, event){
+						EasyConnect.SchemaBuilderController.getSObjectType($scope.fielddata.APIName,$scope.parent,function(result, event){
 							$scope.$apply(function(){
 								$scope.sObjectType = result;
 							});

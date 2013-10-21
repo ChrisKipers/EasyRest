@@ -7,6 +7,7 @@
         <members>FieldNode</members>
         <members>IsolatedSObjectNode</members>
         <members>MultiNodeResult</members>
+        <members>MultiNodeResultTest</members>
         <members>Node</members>
         <members>NodeResult</members>
         <members>NodeTreeConstructor</members>
