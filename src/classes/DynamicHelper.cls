@@ -142,4 +142,20 @@ public class DynamicHelper {
 		
 		return convertedValue;
 	}
+	
+	public static Id convertToId(String identifier) {
+		if (identifier.length() == 18) {
+			identifier = identifier.substring(0, 15);
+		}
+		
+		if (identifier.length() == 15) {
+			try {
+				return (Id)identifier;
+			} catch(Exception e) {
+				return null;
+			}
+		} else {
+			return null;
+		}
+	}
 }

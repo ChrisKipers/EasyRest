@@ -146,6 +146,29 @@ public class MultiNodeResult extends NodeResult {
 		}
 	}
 	
+	public List<String> getMatchingFieldValues() {
+		IsolatedSObjectNode iNode = (IsolatedSObjectNode)node;
+		String apiName = iNode.matchingField;
+		if (apiName != null && sObjResults != null && sObjResults.size() > 0) {
+			List<String> matchingFieldValues = new List<String>();
+			for (SObjectResult sobjRes : sObjResults) {
+				if (sobjRes.obj != null) {
+					Object val = sobjRes.obj.get(apiName);
+					if (val != null) {
+						matchingFieldValues.add(String.valueOf(val));
+					}
+				}
+			}
+			if (matchingFieldValues.size() > 0) {
+				return matchingFieldValues;
+			} else {
+				return null;
+			}
+		} else {
+			return null;
+		}
+	}
+	
 	private class SObjectResultsPair {
 		public SObjectResult origResult	{get; set;}
 		public SObjectResult newResult	{get; set;}

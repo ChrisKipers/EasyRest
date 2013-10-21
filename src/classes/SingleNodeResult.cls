@@ -82,9 +82,17 @@ public class SingleNodeResult extends NodeResult {
 		}
 	}
 	
-	public class TestingException extends Exception{
-		
-		
+	public String getMatchingFieldValue() {
+		IsolatedSObjectNode iNode = (IsolatedSObjectNode)node;
+		String apiName = iNode.matchingField;
+		System.debug('apiName: ' + apiName);
+		if (String.isNotBlank(apiName) && sObjResult != null && sObjResult.obj != null) {
+			Object value = sObjResult.obj.get(apiName);
+			if (value != null) {
+				return String.valueOf(value);
+			}
+		}
+		return null;
 	}
 	
 }

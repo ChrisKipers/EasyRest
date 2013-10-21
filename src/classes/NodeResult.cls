@@ -16,6 +16,7 @@ public abstract class NodeResult {
 			}
 		}
 	}
+
 	/**************** Static class methods ********************************/
 	
 	public static SingleNodeResult buildResults(IsolatedSObjectNode nodeTree, String identifier) {

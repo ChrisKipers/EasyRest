@@ -1,0 +1,128 @@
+<apex:page standardController="Send_Configuration__c" extensions="SendControlCenterController">
+	<apex:stylesheet value="{!$Resource.ControlCenterCss}"/>
+	<apex:includeScript value="{!URLFOR($Resource.jqueryUI,'jquery-ui-1.10.3.custom/js/jquery-1.9.1.js')}"/>
+	<script>
+		var showRequest = true;
+		var j$ = jQuery.noConflict();
+		j$(document).ready(function(){
+			j$('#response-header').click(function(){
+				showResponseDiv();
+			});
+			j$('#request-header').click(function(){
+				showRequestDiv();
+			})
+		});
+		
+		function showResponseDiv() {
+			j$('#response-div').show();
+			j$('#response-header').removeClass('not-active');
+			
+			j$('#request-div').hide();
+			j$('#request-header').addClass('not-active');
+			showRequest = false;
+		}
+		
+		function showRequestDiv() {
+			j$('#response-div').hide();
+			j$('#response-header').addClass('not-active');
+			
+			j$('#request-div').show();
+			j$('#request-header').removeClass('not-active');
+			showRequest = true;
+		}
+	</script>
+	<apex:form >
+		<div class="main-div">
+			<div class="section">
+				<h2>Interaction</h2>
+				<div>
+					<label>Interaction</label>
+					<apex:selectList size="1" value="{!selectedInteractionId}">
+						<apex:selectOptions value="{!interactionOptions}"/>
+						<apex:actionSupport action="{!setInteraction}" event="onchange" rerender="headers, requestBody, endpoint"/>
+					</apex:selectList>
+				</div>
+				<div>
+					<label>Endpoint</label>
+					<apex:inputText id="endpoint" styleClass="endpoint" value="{!endPoint}"/>
+				</div>
+			</div>
+			<div class="section">
+				<h2>Records To Send</h2>
+				<apex:commandButton value="Add Record Id" action="{!addIdentifier}" rerender="recordIds" styleClass="add-button"/>
+				<apex:outputPanel id="recordIds">
+					<apex:variable var="pos" value="{!0}" />
+					<apex:repeat value="{!identifierIds}" var="ident">
+						<div>
+							<label>Record {!pos + 1}</label>
+							<apex:inputText value="{!ident.value}">
+								<apex:actionSupport event="onchange" action="{!UpdateIdentifiers}" rerender="requestBody, endpoint"/>
+							</apex:inputText>
+							<apex:commandLink value="Remove" action="{!removeIdentifier}" rerender="recordIds,requestBody">
+								<apex:param name="removeIndex" value="{!pos}" assignTo="{!removeIdentifierId}"/>
+							</apex:commandLink>
+							<apex:variable var="pos" value="{!pos + 1}" />
+						</div>
+					</apex:repeat>
+				</apex:outputPanel>
+			</div>
+			<div class="section">
+				<h2>Headers</h2>
+				<apex:commandButton value="Add Header" action="{!addHeader}" rerender="headers" styleClass="add-button"/>
+				<apex:outputPanel id="headers">
+					<apex:variable var="h" value="{!0}" />
+					<apex:repeat value="{!activeHeaders}" var="header">
+						<div>
+							<apex:outputLabel value="Key"/>
+							<apex:inputField value="{!header.Key__c}"/>
+							<apex:outputLabel value="Value"/>
+							<apex:inputField value="{!header.Value__c}"/>
+							<apex:commandLink value="Remove" action="{!removeHeader}" rerender="headers">
+								<apex:param name="removeIndex" value="{!h}" assignTo="{!removeHeaderIndex}"/>
+							</apex:commandLink>
+							<apex:variable var="h" value="{!h + 1}" />
+						</div>
+					</apex:repeat>
+				</apex:outputPanel>
+			</div>
+			<div class="section">
+				<h2><span id="request-header">Request Body</span>/<span id="response-header" class="not-active">Response Body</span></h2>
+				<apex:outputPanel id="requestBody">
+					<div id="request-div">
+						<pre id="requestBody">
+	
+						</pre>
+						<apex:commandButton value="Send Request" action="{!makeRequest}" rerender="requestBody" oncomplete="showResponseDiv();"/>
+					</div>
+					<div id="response-div">
+						<pre id="responseBody">
+	
+						</pre>
+						<apex:commandButton value="Save Response" action="{!saveResponse}" rerender="requestBody" oncomplete="alert('Saved!');"/>
+					</div>
+					<script>
+						if ('{!responseBody}') {
+							try {
+								var resObj = JSON.parse('{!responseBody}');
+								j$('#responseBody').html(JSON.stringify(resObj, null, '\t'));
+							} catch(err) {
+								j$('#responseBody').html('{!responseBody}');
+							}
+							
+						}
+						if ('{!requestBody}') {
+							var obj = JSON.parse('{!requestBody}');
+							j$('#requestBody').html(JSON.stringify(obj, null, '\t'));
+						}
+						if (showRequest) {
+							showRequestDiv();
+						} else {
+							showResponseDiv();
+						}
+					</script>
+				</apex:outputPanel>
+			</div>
+		</div>
+	</apex:form>
+
+</apex:page>

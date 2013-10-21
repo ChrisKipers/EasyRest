@@ -1,7 +1,3 @@
-/* Welcome to Compass.
- * In this file you should write your main styles. (or centralize your imports)
- * Import this file using the following HTML or equivalent:
- * <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css" /> */
 /* line 17, ../../../../../../../../RailsInstaller/Ruby1.9.3/lib/ruby/gems/1.9.1/gems/compass-0.12.2/frameworks/compass/stylesheets/compass/reset/_utilities.scss */
 html, body, div, span, applet, object, iframe,
 h1, h2, h3, h4, h5, h6, p, blockquote, pre,
@@ -67,82 +63,50 @@ article, aside, details, figcaption, figure, footer, header, hgroup, menu, nav, 
   display: block;
 }
 
-/* line 32, ../sass/screen.scss */
-.isolated-node {
-  border: 2px solid #eb7b59;
-  background: #f6c3b4;
-  -webkit-box-shadow: 2px 2px 2px black;
-  -moz-box-shadow: 2px 2px 2px black;
-  box-shadow: 2px 2px 2px black;
-  padding: 10px;
-  margin: 10px;
-  color: black;
+/* line 6, ../sass/commandcenter.scss */
+.main-div {
+  width: 800px;
+  margin-top: 20px;
+  margin: 20px 0 0 20px;
+  border: 2px solid black;
 }
-/* line 23, ../sass/screen.scss */
-.isolated-node label {
+/* line 12, ../sass/commandcenter.scss */
+.main-div h2 {
+  font-size: 25px;
+  font-weight: bold;
   display: inline-block;
+  margin-bottom: 10px;
+  color: #c55720;
+}
+/* line 21, ../sass/commandcenter.scss */
+.main-div .not-active {
+  color: grey;
+}
+/* line 25, ../sass/commandcenter.scss */
+.main-div .add-button {
+  float: right;
+}
+/* line 29, ../sass/commandcenter.scss */
+.main-div .section {
+  border-bottom: 1px solid grey;
+  padding: 15px;
+}
+/* line 32, ../sass/commandcenter.scss */
+.main-div .section label {
   width: 100px;
-  font-weight: bold;
   text-align: right;
-  padding-right: 3px;
-}
-
-/* line 36, ../sass/screen.scss */
-.sobject-node {
-  border: 2px solid #e5ddcb;
-  background: white;
-  -webkit-box-shadow: 2px 2px 2px black;
-  -moz-box-shadow: 2px 2px 2px black;
-  box-shadow: 2px 2px 2px black;
-  padding: 10px;
-  margin: 10px;
-  color: black;
-}
-/* line 23, ../sass/screen.scss */
-.sobject-node label {
+  padding-right: 5px;
   display: inline-block;
-  width: 100px;
-  font-weight: bold;
-  text-align: right;
-  padding-right: 3px;
 }
-
-/* line 40, ../sass/screen.scss */
-.field-node {
-  border: 2px solid #a7c5bd;
-  background: #e4eeeb;
-  -webkit-box-shadow: 2px 2px 2px black;
-  -moz-box-shadow: 2px 2px 2px black;
-  box-shadow: 2px 2px 2px black;
+/* line 40, ../sass/commandcenter.scss */
+.main-div pre {
+  background: black;
+  margin: 15px;
   padding: 10px;
-  margin: 10px;
-  color: black;
+  border: 1px solid black;
+  color: #c55720;
 }
-/* line 23, ../sass/screen.scss */
-.field-node label {
-  display: inline-block;
-  width: 100px;
-  font-weight: bold;
-  text-align: right;
-  padding-right: 3px;
-}
-
-/* line 44, ../sass/screen.scss */
-pre {
-  border: 2px solid #a7c5bd;
-  background: #e4eeeb;
-  -webkit-box-shadow: 2px 2px 2px black;
-  -moz-box-shadow: 2px 2px 2px black;
-  box-shadow: 2px 2px 2px black;
-  padding: 10px;
-  margin: 10px;
-  color: black;
-}
-/* line 23, ../sass/screen.scss */
-pre label {
-  display: inline-block;
-  width: 50px;
-  font-weight: bold;
-  text-align: right;
-  padding-right: 3px;
+/* line 48, ../sass/commandcenter.scss */
+.main-div .endpoint {
+  width: 600px;
 }
